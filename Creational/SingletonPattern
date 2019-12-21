@@ -1,0 +1,188 @@
+Singleton Pattern
+=================
+process
+--------
+1.Define a private constructor so that it can restrict instantiation from outer class.
+2.Define private static reference variable of the same class.
+3.Define a public static method that will return instance of that class,this is the global access for outer class.
+
+Different Approach of singleton Class
+=====================================
+1. Eager initialization.
+2. static block initialization.
+3. lazy initialization.
+4. Threadsafe singleton.
+5.
+ 
+1. Eager initialization
+-----------------------
+>This is the easy way to create singleton object of the class.
+>In this process singleton object will be created at the time of class loading.
+>There is drawback in this process,instance of the class will be created always even though there is requirment or not.
+>if the singleton class is a database connection or creating a socket there may be chance of memory leak.
+>Exception handling is not possible.
+ example
+ =======
+ public class EagerIntializationSIngleton {
+	//Eager initialization singleton class
+	private static final EagerIntializationSIngleton EAGER_INTIALIZATIONS_INGLETON =new EagerIntializationSIngleton();
+	private EagerIntializationSIngleton() {
+		
+	}
+	public static EagerIntializationSIngleton getInstance() {
+		return EAGER_INTIALIZATIONS_INGLETON;
+		
+	}
+}
+static block
+------------
+>It is the part of eager initialization here  we are using static block for instantion.
+>here cpu time is wated for object creation.
+>instance of the class will be created always when it is not required also.
+>No need to implement getInstance() method. Instance can be accessed directly.
+>Exception handling is possible 
+
+Example
+--------
+
+public class EagerIntializationSIngleton1 {
+	//static block instance creation
+	private static final EagerIntializationSIngleton1 EAGER_INTIALIZATIONS_INGLETON1 ;
+	private EagerIntializationSIngleton1() {
+		
+	}
+	static {
+		EAGER_INTIALIZATIONS_INGLETON1=new  EagerIntializationSIngleton1();
+		
+	}
+}
+
+LAZY initialization
+===================
+>Define a private static instance varialble of same calss ,so no one can access directly.
+>Define a private constructor so object creation from outer class is not possible.
+>Define a public static method to return instance of the class.
+>In that method there is null check if object is null then created or else return previously  created   object.
+>As object is creating inside a method it ensure that object will be created when it required.
+>In this way we can prevent waste of cpu.
+example
+--------
+public class LazyInitializationSingleton {
+	//private instance variable so direct access is not possible
+private static LazyInitializationSingleton lazyInitializationSingleton;
+//private constructor so object creation from outside is not possible
+private LazyInitializationSingleton() {
+	
+}
+//public method with return type of same class
+public static LazyInitializationSingleton getInstance() {
+	if(lazyInitializationSingleton==null) {
+		lazyInitializationSingleton=new LazyInitializationSingleton();
+	}
+	return lazyInitializationSingleton;
+}
+}
+
+> Through reflection we can break singleton properties here.
+>Reflection is the process through which we can modify runtime behaviour of calss at runtime.
+>Through reflecton we can change constructor acess to public and create a new instance.
+
+example
+------
+LazyInitializationSingleton instance3 = LazyInitializationSingleton.getInstance();
+LazyInitializationSingleton instance4 = null;
+try{
+Class<LazyInitializationSingleton> clazz=LazyInitializationSingleton.class;
+Constructor<LazyInitializationSingleton> cons=clazz.getDeclairedConstructor();
+cons.setAccessble(true);
+instance4=new Instance();
+}
+catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
+	            e.printStackTrace();
+	        }
+		System.out.println("hashcode of instance3:" + instance3.hashCode());
+		System.out.println("hashcode of instance4:" + instance4.hashCode());
+
+>To prevent from reflection we need to throw a runtime exception inside from the constructor.
+private LazyInitializationSingleton() {
+	//Addition to prevent from reflection
+	if(lazyInitializationSingleton==null) {
+		throw new RuntimeException("Use getInstance() method to get instance.");
+	}
+	
+	Threadsafe Singleton
+	====================
+	There is a chance of violating singleton principle through multithread.
+	so we need to double check for null.
+	 and write a synchronysed block inside getinstance method inside that we need to check for null.
+	example
+	======= 
+	 public static LazyInitializationSingleton getInstance() {
+	if(lazyInitializationSingleton==null) {
+		//prevent from multi thread
+		synchronized (LazyInitializationSingleton.class) {
+			if(lazyInitializationSingleton==null) {
+				lazyInitializationSingleton=new LazyInitializationSingleton();
+			}
+		}
+		
+	}
+	return lazyInitializationSingleton;
+}
+
+Make Singleton safe from Serialization:
+=======================================
+Sometimes in distributed systems, we need to implement Serializable interface in Singleton class. By doing that we can store its state in the file system and retrieve it at later point of time.
+ Let’s test our singleton class whether it maintains single instance after serializable and deserializable operations?
+	 try {
+            SingletonClass instance1 = SingletonClass.getInstance();
+            ObjectOutput out = null;
+
+            out = new ObjectOutputStream(new FileOutputStream("filename.ser"));
+            out.writeObject(instance1);
+            out.close();
+
+            //deserialize from file to object
+            ObjectInput in = new ObjectInputStream(new FileInputStream("filename.ser"));
+            SingletonClass instance2 = (SingletonClass) in.readObject();
+            in.close();
+
+            System.out.println("instance1 hashCode=" + instance1.hashCode());
+            System.out.println("instance2 hashCode=" + instance2.hashCode());
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+   }
+   
+   solution
+   ========
+   public class SingletonClass implements Serializable {
+
+    private static volatile SingletonClass sSoleInstance;
+
+    //private constructor.
+    private SingletonClass(){
+
+        //Prevent form the reflection api.
+        if (sSoleInstance != null){
+            throw new RuntimeException("Use getInstance() method to get the single instance of this class.");
+        }
+    }
+
+    public static SingletonClass getInstance() {
+        if (sSoleInstance == null) { //if there is no instance available... create new one
+            synchronized (SingletonClass.class) {
+                if (sSoleInstance == null) sSoleInstance = new SingletonClass();
+            }
+        }
+
+        return sSoleInstance;
+    }
+
+    //Make singleton from serialize and deserialize operation.
+    protected SingletonClass readResolve() {
+        return getInstance();
+    }
+}
+	
